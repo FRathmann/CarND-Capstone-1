@@ -1,15 +1,20 @@
-from styx_msgs.msg import TrafficLight
-import tensorflow as tf
+#!/usr/bin/env python
+import time
+
 import numpy as np
-import datetime
+import rospy
+import tensorflow as tf
+from styx_msgs.msg import TrafficLight
+
 
 class TLClassifier(object):
     def __init__(self):
 
-        PATH_TO_GRAPH = r'light_classification/model/ssd_sim/frozen_inference_graph.pb'
+        PATH_TO_GRAPH = r'frozen_inference_graph.pb'
 
         self.graph = tf.Graph()
-        self.threshold = .5
+        self.threshold = .7
+        self.direct_hit_threshold = .95
 
         with self.graph.as_default():
             od_graph_def = tf.GraphDef()
@@ -21,8 +26,7 @@ class TLClassifier(object):
             self.boxes = self.graph.get_tensor_by_name('detection_boxes:0')
             self.scores = self.graph.get_tensor_by_name('detection_scores:0')
             self.classes = self.graph.get_tensor_by_name('detection_classes:0')
-            self.num_detections = self.graph.get_tensor_by_name(
-                'num_detections:0')
+            self.num_detections = self.graph.get_tensor_by_name('num_detections:0')
 
         self.sess = tf.Session(graph=self.graph)
 
@@ -37,30 +41,28 @@ class TLClassifier(object):
         """
         with self.graph.as_default():
             img_expand = np.expand_dims(image, axis=0)
-            start = datetime.datetime.now()
+            start = time.time()
             (boxes, scores, classes, num_detections) = self.sess.run(
                 [self.boxes, self.scores, self.classes, self.num_detections],
                 feed_dict={self.image_tensor: img_expand})
-            end = datetime.datetime.now()
-            c = end - start
-            print(c.total_seconds())
+            # rospy.loginfo("Prediction took {0:.2}s".format(time.time() - start))
 
-        boxes = np.squeeze(boxes)
         scores = np.squeeze(scores)
         classes = np.squeeze(classes).astype(np.int32)
 
-        print('SCORES: ', scores[0])
-        print('CLASSES: ', classes[0])
+        good_classes = list(classes[scores > self.threshold])
+        if len(good_classes) == 0:
+            return TrafficLight.UNKNOWN
 
-        if scores[0] > self.threshold:
-            if classes[0] == 1:
-                print('GREEN')
-                return TrafficLight.GREEN
-            elif classes[0] == 2:
-                print('RED')
-                return TrafficLight.RED
-            elif classes[0] == 3:
-                print('YELLOW')
-                return TrafficLight.YELLOW
+        most_common_class = good_classes[0]
+        if len(good_classes) > 1:
+            if scores[0] < self.direct_hit_threshold:
+                # fastest way to find most common item for small list according to https://stackoverflow.com/a/28528632/9309705
+                most_common_class = max(map(lambda val: (good_classes.count(val), val), set(good_classes)))[1]
 
-        return TrafficLight.UNKNOWN
+        if most_common_class == 1:
+            return TrafficLight.GREEN
+        elif most_common_class == 2:
+            return TrafficLight.RED
+        elif most_common_class == 3:
+            return TrafficLight.YELLOW
