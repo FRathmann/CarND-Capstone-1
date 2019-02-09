@@ -16,7 +16,7 @@ class TLClassifier(object):
         self.graph = self.load_graph(self.model_file)
         self.labels = ['green', 'none', 'red', 'yellow']
         self.light_states = [TrafficLight.GREEN, TrafficLight.UNKNOWN, TrafficLight.RED, TrafficLight.YELLOW]
-        self.sess = tf.Session(graph=self.graph, config=tf.ConfigProto(log_device_placement=True))
+        self.sess = tf.Session(graph=self.graph)
 
     def load_graph(self, model_file):
         graph = tf.Graph()
