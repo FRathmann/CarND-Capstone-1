@@ -19,7 +19,11 @@ from io import BytesIO
 import base64
 
 import math
-
+'''
+Acknowledge Justin Lee's (justin.lee007@gmail.com) solution
+https://github.com/justinlee007/CarND-Capstone/blob/master/ros/src/styx/bridge.py
+'''
+IMAGE_THROTTLE_FACTOR = 3
 TYPE = {
     'bool': Bool,
     'float': Float,
@@ -44,7 +48,7 @@ class Bridge(object):
         self.yaw = None
         self.angular_vel = 0.
         self.bridge = CvBridge()
-
+        self.image_count = 0
         self.callbacks = {
             '/vehicle/steering_cmd': self.callback_steering,
             '/vehicle/throttle_cmd': self.callback_throttle,
@@ -175,12 +179,13 @@ class Bridge(object):
         self.publishers['dbw_status'].publish(Bool(data))
 
     def publish_camera(self, data):
-        imgString = data["image"]
-        image = PIL_Image.open(BytesIO(base64.b64decode(imgString)))
-        image_array = np.asarray(image)
-
-        image_message = self.bridge.cv2_to_imgmsg(image_array, encoding="rgb8")
-        self.publishers['image'].publish(image_message)
+        self.image_count += 1
+        if (self.image_count % IMAGE_THROTTLE_FACTOR) == 0:
+            imgString = data["image"]
+            image = PIL_Image.open(BytesIO(base64.b64decode(imgString)))
+            image_array = np.asarray(image)
+            image_message = self.bridge.cv2_to_imgmsg(image_array, encoding="rgb8")
+            self.publishers['image'].publish(image_message)
 
     def callback_steering(self, data):
         self.server('steer', data={'steering_angle': str(data.steering_wheel_angle_cmd)})

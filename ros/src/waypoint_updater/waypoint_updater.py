@@ -24,7 +24,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 50 # Number of waypoints we will publish. 200 are too many, car lost itself in the middle...
-MAX_DECEL = 10
+MAX_DECEL = 0.5
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -70,7 +70,7 @@ class WaypointUpdater(object):
         # equation for hyperplane through closest_coord
         cl_vect = np.array(closest_coord)
         prev_vect = np.array(prev_coord)
-        pos_vect = np.array([x,y])
+        pos_vect = np.array([x, y])
 
         val = np.dot(cl_vect - prev_vect, pos_vect - cl_vect)
         if val > 0:
@@ -80,14 +80,14 @@ class WaypointUpdater(object):
     def publish_waypoints(self):
         final_lane = self.generate_lane()
         self.final_waypoints_pub.publish(final_lane)
-    
+
     def generate_lane(self):
         lane = Lane()
-        
+
         closest_idx = self.get_closest_waypoint_idx()
         farthest_idx = closest_idx + LOOKAHEAD_WPS
         waypoints = self.base_waypoints.waypoints[closest_idx:farthest_idx]
-        
+
         if self.stopline_wp_idx == -1 or (self.stopline_wp_idx >= farthest_idx):
             lane.waypoints = waypoints
         else:
