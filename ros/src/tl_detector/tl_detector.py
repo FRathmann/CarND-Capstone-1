@@ -13,7 +13,14 @@ import cv2
 import yaml
 
 STATE_COUNT_THRESHOLD = 3
-IMAGE_CB_THRESHOLD = 5
+#IMAGE_CB_THRESHOLD = 2
+
+LIGHTS = {
+    TrafficLight.RED: 'RED',
+    TrafficLight.GREEN: 'GREEN',
+    TrafficLight.YELLOW: 'YELLOW',
+    TrafficLight.UNKNOWN: 'NONE'
+}
 
 class TLDetector(object):
     def __init__(self):
@@ -80,16 +87,15 @@ class TLDetector(object):
             msg (Image): image from car-mounted camera
 
         """
-        if self.image_counter < IMAGE_CB_THRESHOLD:
-            self.image_counter += 1
-            return
-        else:
-            self.image_counter = 0
-
+        #if self.image_counter < IMAGE_CB_THRESHOLD:
+        #    self.image_counter += 1
+        #    return
+        #else:
+        #    self.image_counter = 0
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
-        rospy.loginfo("Closest light waypoint= {0}, light state= {1}".format(light_wp, state))
+        #rospy.loginfo("Closest light waypoint= {0}, light state= {1}".format(light_wp, state))
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -104,6 +110,8 @@ class TLDetector(object):
             self.last_state = self.state
             light_wp = light_wp if state == TrafficLight.RED else -1
             self.last_wp = light_wp
+            if light_wp != -1:
+                rospy.logwarn('{} light detected at light wp[{}]'.format(LIGHTS[state], light_wp))
             self.upcoming_red_light_pub.publish(Int32(light_wp))
         else:
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))

@@ -24,7 +24,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 50 # Number of waypoints we will publish. 200 are too many, car lost itself in the middle...
-MAX_DECEL = 0.5
+MAX_DECEL = .25
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -49,7 +49,7 @@ class WaypointUpdater(object):
         self.loop()
 
     def loop(self):
-        rate = rospy.Rate(25)
+        rate = rospy.Rate(20)
         while not rospy.is_shutdown():
             if self.pose and self.base_waypoints:
                 # get closest waypoint

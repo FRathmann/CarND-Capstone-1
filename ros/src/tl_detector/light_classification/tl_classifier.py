@@ -55,12 +55,14 @@ class TLClassifier(object):
             tensor = self.sess.run(normalized)
             results = self.sess.run(output_operation.outputs[0], {input_operation.outputs[0]: tensor})
             end=time.time()
-            rospy.logwarn('\nEvaluation time (1-image): {:.3f}s\n'.format(end-start))
+
 
         results = np.squeeze(results)
         top_k = results.argsort()[-5:][::-1]
         label_idx = top_k[0]
         template = "{} (score={:0.5f})"
-        for i in top_k:
-            rospy.logwarn(template.format(self.labels[i], results[i]))
+        #if label_idx != 1:
+        #    rospy.logwarn('\nEvaluation time (1-image): {:.3f}s\n'.format(end-start))
+        #    for i in top_k:
+        #        rospy.logwarn(template.format(self.labels[i], results[i]))
         return self.light_states[label_idx]
