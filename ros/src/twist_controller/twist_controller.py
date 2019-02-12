@@ -5,7 +5,7 @@ from pid import PID
 from yaw_controller import YawController
 
 GAS_DENSITY = 2.858
-LOGGING_THROTTLE_FACTOR = 1  # Only log after this many seconds
+LOGGING_THROTTLE_FACTOR = 3  # Only log after this many seconds
 MAX_BRAKE = 400.0
 
 
@@ -17,7 +17,7 @@ class Controller(object):
 
         kp = 0.3
         ki = 0.1
-        kd = 1
+        kd = 0.0
         mn = 0.0  # Minimum throttle value
         mx = 0.2  # Maximum throttle value
         self.throttle_controller = PID(kp, ki, kd, mn, mx)
@@ -41,7 +41,7 @@ class Controller(object):
         if not dbw_enabled:
             self.throttle_controller.reset()
             return 0.0, 0.0, 0.0
-        
+
         current_vel = self.vel_lpf.filt(current_vel)
 
         steering = self.yaw_controller.get_steering(linear_vel, angular_vel, current_vel)
@@ -62,11 +62,13 @@ class Controller(object):
         elif throttle < 0.1 and vel_error < 0:
             throttle = 0.0
             decel = max(vel_error, self.decel_limit)
-            brake = abs(decel) * self.vehicle_mass * self.wheel_radius    # Torque N*m
+            brake = min(MAX_BRAKE, (abs(decel) * self.vehicle_mass * self.wheel_radius))  # Torque N*m
 
         if (current_time - self.log_time) > LOGGING_THROTTLE_FACTOR:
             self.log_time = current_time
-            #rospy.logwarn("current_vel={}, linear_vel={}, vel_error={}".format(current_vel, linear_vel,vel_error))
-            #rospy.logwarn("throttle={}, brake={}, steering={}".format(throttle, brake, steering))
+            rospy.logwarn("POSE: current_vel={:.2f}, linear_vel={:.2f}, vel_error={:.2f}".format(current_vel,
+                                                                                                 linear_vel,
+                                                                                                 vel_error))
+            rospy.logwarn("POSE: throttle={:.2f}, brake={:.2f}, steering={:.2f}".format(throttle, brake, steering))
 
         return throttle, brake, steering
