@@ -23,7 +23,7 @@ import math
 Acknowledge Justin Lee's (justin.lee007@gmail.com) solution
 https://github.com/justinlee007/CarND-Capstone/blob/master/ros/src/styx/bridge.py
 '''
-IMAGE_THROTTLE_FACTOR = 3
+IMAGE_THROTTLE_FACTOR = 5
 TYPE = {
     'bool': Bool,
     'float': Float,
