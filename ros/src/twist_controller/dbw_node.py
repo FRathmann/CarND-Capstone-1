@@ -87,7 +87,7 @@ class DBWNode(object):
         self.angular_vel = msg.twist.angular.z
 
     def loop(self):
-        rate = rospy.Rate(50) # >> 50Hz
+        rate = rospy.Rate(40) # >> 50Hz
         while not rospy.is_shutdown():
             # Only publish the control commands if dbw is enabled
             if not None in (self.current_vel, self.linear_vel, self.angular_vel):
