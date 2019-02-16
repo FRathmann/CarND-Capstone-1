@@ -13,7 +13,7 @@ import cv2
 import yaml
 
 STATE_COUNT_THRESHOLD = 3
-IMAGE_CB_THRESHOLD = 5
+IMAGE_CB_THRESHOLD = 3
 
 class TLDetector(object):
     def __init__(self):
