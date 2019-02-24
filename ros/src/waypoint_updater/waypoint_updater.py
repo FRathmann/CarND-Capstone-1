@@ -58,7 +58,7 @@ class WaypointUpdater(object):
                     self.closest_waypoint_idx = self.current_wp
                     #rospy.logwarn('Car pose: ({}, {})'.format(self.pose.pose.position.x, self.pose.pose.position.y))
                     self.publish_waypoints()
-                if or self.traffic_light_updated:
+                if self.traffic_light_updated:
                     self.publish_waypoints()
 
             rate.sleep()
