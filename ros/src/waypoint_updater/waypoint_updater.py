@@ -15,16 +15,12 @@ from utilities.hysteresis import hysteresis
 
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
-
 As mentioned in the doc, you should ideally first implement a version which does not care
 about traffic lights or obstacles.
-
 Once you have created dbw_node, you will update this node to use the status of traffic lights too.
-
 Please note that our simulator also provides the exact location of traffic lights and their
 current status in `/vehicle/traffic_lights` message. You can use this message to build this node
 as well as to verify your TL classifier.
-
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
@@ -146,14 +142,11 @@ class WaypointUpdater(object):
 
     def distance2(self, pose1, pose2):
         """Calculate the square of the Eucleadian distance bentween the two poses given
-
         Args:
             pose1: given Pose
             pose2: given Pose
-
         Returns:
             float: square of the Eucleadian distance bentween the two poses given
-
         """
         dist2 = (pose1.position.x-pose2.position.x)**2 + (pose1.position.y-pose2.position.y)**2
         return dist2
@@ -163,10 +156,8 @@ class WaypointUpdater(object):
             https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
         Args:
             pose (Pose): position to match a waypoint to
-
         Returns:
             int: index of the closest waypoint in self.waypoints
-
         """
         if self.waypoint_tree == None:
             return None
@@ -175,14 +166,11 @@ class WaypointUpdater(object):
 
     def transform_to_car_frame(self, pose_stamped):
         """Transform the given pose to car co-ordinate frame
-
         Args:
             pose: given PoseStamped object
-
         Returns:
             PoseStamped: a PoseStamped object which is car co-ordinate frame equivalent
                   of the given pose. (None if the tranformation failed)
-
         """
         try:
             self.tf_listener.waitForTransform("base_link", "world", rospy.Time(0), rospy.Duration(0.02))
@@ -201,10 +189,8 @@ class WaypointUpdater(object):
         """Calculate a trajectory starting at the given waypoint so that the car
            comes to a halt at the next stopline in case of a red light and
            travels at speed limit otherwise
-
         Args:
             next_waypoint: index of the next waypoint
-
         """
         max_speed = self.waypoint_speeds[next_waypoint]
 
@@ -224,13 +210,10 @@ class WaypointUpdater(object):
     def get_trajectory_speed_at_waypoint(self, waypoint):
         """Get the expected speed at the given waypoint as per the
            current trajectory
-
         Args:
             waypoint: index of the waypoint
-
         Returns:
             float: trajectory speed at the given waypoint
-
         """
         return self.trajectory_target_speed
 
