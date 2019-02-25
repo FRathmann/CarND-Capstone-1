@@ -1,53 +1,53 @@
-import rospy
-from pid import PID
-from lowpass import LowPassFilter
 from yaw_controller import YawController
+from lowpass import LowPassFilter
+from pid import PID
 
+import rospy
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
 
 
-class TwistController(object):
-    def __init__(self, cp):
-        self.yaw_controller = YawController(
-            wheel_base=cp.wheel_base,
-            steer_ratio=cp.steer_ratio,
-            min_speed=cp.min_speed,
-            max_lat_accel=cp.max_lat_accel,
-            max_steer_angle=cp.max_steer_angle)
+class Controller(object):
+    def __init__(self, *args, **kwargs):
+        # Steering control: yaw controller followed by  a low pass filter
+        self.yaw_control = YawController(
+                kwargs['wheel_base'],
+                kwargs['steer_ratio'],
+                kwargs['min_speed'],
+                kwargs['max_lat_accel'],
+                kwargs['max_steer_angle'])
+        self.lpf = LowPassFilter(kwargs['steering_tau'], 1.0/kwargs['sample_rate'])
 
-        self.cp = cp
-        self.pid = PID(kp=5, ki=0.5, kd=0.5, mn=cp.decel_limit, mx=cp.accel_limit)
-        self.s_lpf = LowPassFilter(tau = 3, ts = 1)
-        self.t_lpf = LowPassFilter(tau = 3, ts = 1)
+        # Speed control: PID controller
+        pid_gains = kwargs['throttle_gains']
+        self.pid = PID(pid_gains[0], pid_gains[1], pid_gains[2], kwargs['max_speed'])
 
-    def reset(self):
-        self.pid.reset()
+        total_mass = kwargs['vehicle_mass'] + kwargs['fuel_capacity']*GAS_DENSITY
+        self.max_brake_torque = total_mass * kwargs['decel_limit'] * kwargs['wheel_radius']
+        self.min_brake = -1.0 * kwargs['brake_deadband']
 
-    def control(self, twist_cmd, current_velocity, del_time):
-        
-        lin_vel = abs(twist_cmd.twist.linear.x)
-        ang_vel = twist_cmd.twist.angular.z
-        vel_err = lin_vel - current_velocity.twist.linear.x
+    def control(self, target, current):
+        # Speed control: PID controller step
+        u = self.pid.step(target.linear.x, current.linear.x, rospy.get_time())
 
-        next_steer = self.yaw_controller.get_steering(lin_vel, ang_vel, current_velocity.twist.linear.x)
-        next_steer = self.s_lpf.filt(next_steer)
-
-        acceleration = self.pid.step(vel_err, del_time)
-        acceleration = self.t_lpf.filt(acceleration)
-
-        if acceleration > 0.0:
-            throttle = acceleration
+        if u > 0:
+            # Positive control input - accelerating
+            throttle = max(0.0, min(1.0,u))
             brake = 0.0
         else:
+            # Negative control input - decelerating
             throttle = 0.0
-            deceleration = -acceleration
+            brake = self.max_brake_torque * min(self.min_brake, u/self.pid.max_abs_u)
 
-            if deceleration < self.cp.brake_deadband:
-                deceleration = 0.0
+        # Steering control: yaw controller step followed by  a low pass filter step
+        steering = self.yaw_control.get_steering(target.linear.x, target.angular.z, current.linear.x)
+        steering = self.lpf.filt(steering)
 
-            brake = deceleration * (self.cp.vehicle_mass + self.cp.fuel_capacity * GAS_DENSITY) * self.cp.wheel_radius
+        # rospy.logwarn("current %04.3f target %04.3f target w %04.3f u %04.3f %04.3f:%04.3f:%04.3f",
+        #     current.linear.x, target.linear.x, target.angular.z, u, throttle, brake, steering)
 
-        # Return throttle, brake, steer
-        return throttle, brake, next_steer
+        return throttle, brake, steering
+
+    def reset(self, *args, **kwargs):
+        self.pid.reset()
